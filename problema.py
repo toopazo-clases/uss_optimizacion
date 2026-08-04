@@ -67,7 +67,8 @@ def vertices_region_factible():
             continue
         x1, x2 = p
         if _es_factible(x1, x2):
-            puntos.append((round(x1, 6), round(x2, 6)))
+            # "or 0.0" normaliza -0.0 a 0.0 (round puede conservar el signo).
+            puntos.append((round(x1, 6) or 0.0, round(x2, 6) or 0.0))
 
     puntos = list(set(puntos))
 

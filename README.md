@@ -3,14 +3,14 @@
 Scripts de ejemplo del curso de optimización.
 
 Ejemplo 2.2-1 (Reddy Mikks) de Taha, resuelto con `scipy` y `pulp`, con
-visualización 3D interactiva (`plotly`).
+visualización 2D de curvas de nivel y vector gradiente (`matplotlib`).
 
 ## Estructura
 
 - `problema.py` — modelo (restricciones, objetivo, vértices).
 - `solver_scipy.py` — resolución con `scipy.optimize.linprog`.
 - `solver_pulp.py` — resolución con `pulp`.
-- `visualizacion_3d.py` — gráfico 3D interactivo.
+- `visualizacion.py` — curvas de nivel de z + vector gradiente.
 - `main.py` — punto de entrada: corre todo lo anterior.
 
 ## Uso

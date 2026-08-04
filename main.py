@@ -2,20 +2,22 @@
 Ejemplo 2.2-1 (Reddy Mikks) - Taha, Operations Research: An Introduction.
 
 Punto de entrada único del proyecto: resuelve el modelo con scipy y con
-pulp, y luego abre la visualización 3D interactiva.
+pulp, y luego abre la visualización 2D (curvas de nivel + gradiente).
 
 Estructura del proyecto:
-    problema.py          -> definición del modelo (única fuente de verdad)
-    solver_scipy.py       -> resolución con scipy.optimize.linprog
-    solver_pulp.py         -> resolución con pulp
-    visualizacion_3d.py     -> gráfico 3D interactivo (plotly)
-    main.py                  -> orquesta todo lo anterior
+    problema.py       -> definición del modelo (única fuente de verdad)
+    solver_scipy.py    -> resolución con scipy.optimize.linprog
+    solver_pulp.py      -> resolución con pulp
+    visualizacion.py     -> curvas de nivel de z + vector gradiente (matplotlib)
+    main.py               -> orquesta todo lo anterior
 """
+
+import matplotlib.pyplot as plt
 
 import problema
 import solver_pulp
 import solver_scipy
-import visualizacion_3d
+import visualizacion
 
 
 def main():
@@ -34,11 +36,11 @@ def main():
     print(f"x1 = {x1:.4f}  x2 = {x2:.4f}  z = {z:.4f}")
     print()
 
-    print("--- Visualización 3D ---")
-    fig = visualizacion_3d.construir_figura()
-    ruta = visualizacion_3d.guardar_html(fig)
+    print("--- Visualización (curvas de nivel + gradiente) ---")
+    fig = visualizacion.construir_figura()
+    ruta = visualizacion.guardar_png(fig)
     print(f"Gráfico guardado en {ruta}")
-    fig.show()
+    plt.show()
 
 
 if __name__ == "__main__":
