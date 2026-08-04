@@ -1,66 +1,45 @@
 """
 Ejemplo 2.2-1 (Reddy Mikks) - Taha, Operations Research: An Introduction.
 
-max z = 5*x1 + 4*x2
-sujeto a:
-    6*x1 + 4*x2 <= 24
-      x1 + 2*x2 <= 6
-     -x1 +   x2 <= 1
-                x2 <= 2
-    x1, x2 >= 0
+Punto de entrada único del proyecto: resuelve el modelo con scipy y con
+pulp, y luego abre la visualización 3D interactiva.
 
-Solución óptima esperada: x1 = 3, x2 = 1.5, z = 21.
+Estructura del proyecto:
+    problema.py          -> definición del modelo (única fuente de verdad)
+    solver_scipy.py       -> resolución con scipy.optimize.linprog
+    solver_pulp.py         -> resolución con pulp
+    visualizacion_3d.py     -> gráfico 3D interactivo (plotly)
+    main.py                  -> orquesta todo lo anterior
 """
 
-from scipy.optimize import linprog
-import pulp
+import problema
+import solver_pulp
+import solver_scipy
+import visualizacion_3d
 
 
-def resolver_scipy():
-    # linprog minimiza, así que se maximiza negando la función objetivo.
-    c = [-5, -4]
-    A_ub = [
-        [6, 4],
-        [1, 2],
-        [-1, 1],
-        [0, 1],
-    ]
-    b_ub = [24, 6, 1, 2]
-    bounds = [(0, None), (0, None)]
-
-    resultado = linprog(c, A_ub=A_ub, b_ub=b_ub, bounds=bounds, method="highs")
-
-    x1, x2 = resultado.x
-    z = -resultado.fun
-    print("=== scipy.optimize.linprog ===")
-    print(f"x1 = {x1:.4f}")
-    print(f"x2 = {x2:.4f}")
-    print(f"z  = {z:.4f}")
+def main():
+    print("Ejemplo 2.2-1 (Reddy Mikks)")
+    print(f"max z = {problema.C1}x1 + {problema.C2}x2")
     print()
 
+    x1, x2, z = solver_scipy.resolver()
+    print("--- scipy.optimize.linprog ---")
+    print(f"x1 = {x1:.4f}  x2 = {x2:.4f}  z = {z:.4f}")
+    print()
 
-def resolver_pulp():
-    modelo = pulp.LpProblem("Reddy_Mikks", pulp.LpMaximize)
+    x1, x2, z, estado = solver_pulp.resolver()
+    print("--- pulp ---")
+    print(f"Estado: {estado}")
+    print(f"x1 = {x1:.4f}  x2 = {x2:.4f}  z = {z:.4f}")
+    print()
 
-    x1 = pulp.LpVariable("x1", lowBound=0)
-    x2 = pulp.LpVariable("x2", lowBound=0)
-
-    modelo += 5 * x1 + 4 * x2, "z"
-
-    modelo += 6 * x1 + 4 * x2 <= 24
-    modelo += x1 + 2 * x2 <= 6
-    modelo += -x1 + x2 <= 1
-    modelo += x2 <= 2
-
-    modelo.solve(pulp.PULP_CBC_CMD(msg=False))
-
-    print("=== pulp ===")
-    print(f"Estado: {pulp.LpStatus[modelo.status]}")
-    print(f"x1 = {pulp.value(x1):.4f}")
-    print(f"x2 = {pulp.value(x2):.4f}")
-    print(f"z  = {pulp.value(modelo.objective):.4f}")
+    print("--- Visualización 3D ---")
+    fig = visualizacion_3d.construir_figura()
+    ruta = visualizacion_3d.guardar_html(fig)
+    print(f"Gráfico guardado en {ruta}")
+    fig.show()
 
 
 if __name__ == "__main__":
-    resolver_scipy()
-    resolver_pulp()
+    main()
