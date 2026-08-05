@@ -3,8 +3,12 @@ Ejemplo 2.2-1 (Reddy Mikks) - Taha, Operations Research: An Introduction.
 
 Versión simple, todo en un solo archivo: resuelve el modelo con pulp y
 grafica la región factible, las curvas de nivel de z y el vector gradiente.
-Pensado como introducción antes de pasar a la versión modular (problema.py,
-solver_pulp.py, solver_scipy.py, visualizacion.py, main.py).
+Pensado como introducción antes de pasar a la versión modular
+(carpeta ejemplos_2d/: problema.py, solver_pulp.py, solver_scipy.py,
+visualizacion.py, main.py).
+
+Por defecto solo guarda el PNG (reddy_mikks_simple.png). Para además abrir
+la ventana interactiva: python main_simple.py --mostrar
 
 max z = 5*x1 + 4*x2
 sujeto a:
@@ -17,6 +21,8 @@ sujeto a:
 Solución óptima: x1 = 3, x2 = 1.5, z = 21.
 """
 
+import sys
+
 import matplotlib.pyplot as plt
 import numpy as np
 import pulp
@@ -28,6 +34,7 @@ C1, C2 = 5, 4
 # --------------------------------------------------------------------------
 # Parte 1: resolver el modelo con pulp
 # --------------------------------------------------------------------------
+
 
 def resolver_pulp():
     """Arma y resuelve el modelo de Reddy Mikks con pulp. Devuelve (x1, x2, z)."""
@@ -56,18 +63,19 @@ def resolver_pulp():
 # pulp ya encontró el óptimo en resolver_pulp(). Lo de acá abajo solo sirve
 # para poder verlo.
 
+
 def vertices_region_factible():
     """
     Vértices del polígono factible, en orden, hallados a mano intersectando
     pares de restricciones activas — el método gráfico clásico.
     """
     return [
-        (0, 0),    # x1=0           ∩  x2=0
-        (4, 0),    # 6x1+4x2=24     ∩  x2=0
+        (0, 0),  # x1=0           ∩  x2=0
+        (4, 0),  # 6x1+4x2=24     ∩  x2=0
         (3, 1.5),  # 6x1+4x2=24     ∩  x1+2x2=6
-        (2, 2),    # x1+2x2=6       ∩  x2=2
-        (1, 2),    # x2=2           ∩  -x1+x2=1
-        (0, 1),    # -x1+x2=1       ∩  x1=0
+        (2, 2),  # x1+2x2=6       ∩  x2=2
+        (1, 2),  # x2=2           ∩  -x1+x2=1
+        (0, 1),  # -x1+x2=1       ∩  x1=0
     ]
 
 
@@ -87,7 +95,9 @@ def graficar_curvas_nivel(ax, x1_max, x2_max):
     Z = C1 * X1 + C2 * X2
 
     niveles = np.linspace(0, C1 * x1_max + C2 * x2_max, 8)
-    contornos = ax.contour(X1, X2, Z, levels=niveles, colors="gray", linewidths=0.8)
+    contornos = ax.contour(
+        X1, X2, Z, levels=niveles, colors="gray", linewidths=0.8
+    )
     ax.clabel(contornos, inline=True, fontsize=8, fmt="%.1f")
 
 
@@ -96,8 +106,13 @@ def graficar_vertices(ax, vertices):
     for x1, x2 in vertices:
         z = C1 * x1 + C2 * x2
         ax.plot(x1, x2, "o", color="steelblue", markersize=4)
-        ax.annotate(f"({x1:g},{x2:g})\nz={z:g}", (x1, x2),
-                    textcoords="offset points", xytext=(6, 6), fontsize=8)
+        ax.annotate(
+            f"({x1:g},{x2:g})\nz={z:g}",
+            (x1, x2),
+            textcoords="offset points",
+            xytext=(6, 6),
+            fontsize=8,
+        )
 
 
 def graficar_gradiente(ax, x1_max):
@@ -107,16 +122,27 @@ def graficar_gradiente(ax, x1_max):
     grad_dir = grad / np.linalg.norm(grad)
     longitud = 0.2 * x1_max
     punta = grad_dir * longitud
-    ax.annotate("", xy=punta, xytext=(0, 0),
-                arrowprops=dict(facecolor="darkred", edgecolor="darkred",
-                                 width=1.5, headwidth=8))
+    ax.annotate(
+        "",
+        xy=punta,
+        xytext=(0, 0),
+        arrowprops=dict(
+            facecolor="darkred", edgecolor="darkred", width=1.5, headwidth=8
+        ),
+    )
     ax.text(punta[0], punta[1], " ∇z", color="darkred", fontsize=10)
 
 
 def graficar_optimo(ax, x1, x2, z):
     """Resalta el punto óptimo encontrado por el solver."""
-    ax.plot(x1, x2, "D", color="red", markersize=10,
-            label=f"Óptimo ({x1:g}, {x2:g}), z={z:g}")
+    ax.plot(
+        x1,
+        x2,
+        "D",
+        color="red",
+        markersize=10,
+        label=f"Óptimo ({x1:g}, {x2:g}), z={z:g}",
+    )
 
 
 def construir_grafico(x1_opt, x2_opt, z_opt):
@@ -148,7 +174,8 @@ def construir_grafico(x1_opt, x2_opt, z_opt):
 # main
 # --------------------------------------------------------------------------
 
-def main():
+
+def main(mostrar=False):
     x1, x2, z = resolver_pulp()
     print("Ejemplo 2.2-1 (Reddy Mikks)")
     print(f"max z = {C1}x1 + {C2}x2")
@@ -157,8 +184,10 @@ def main():
     fig = construir_grafico(x1, x2, z)
     fig.savefig("reddy_mikks_simple.png", dpi=150)
     print("Gráfico guardado en reddy_mikks_simple.png")
-    plt.show()
+
+    if mostrar:
+        plt.show()
 
 
 if __name__ == "__main__":
-    main()
+    main(mostrar="--mostrar" in sys.argv)
