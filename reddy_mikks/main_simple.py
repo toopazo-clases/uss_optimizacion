@@ -24,17 +24,6 @@ import pulp
 # Coeficientes de la función objetivo: z = C1*x1 + C2*x2
 C1, C2 = 5, 4
 
-# Vértices de la región factible (polígono), en orden, obtenidos con el
-# método gráfico: intersección de las rectas de las restricciones activas.
-VERTICES = [
-    (0, 0),
-    (4, 0),
-    (3, 1.5),
-    (2, 2),
-    (1, 2),
-    (0, 1),
-]
-
 
 # --------------------------------------------------------------------------
 # Parte 1: resolver el modelo con pulp
@@ -62,6 +51,25 @@ def resolver_pulp():
 # --------------------------------------------------------------------------
 # Parte 2: visualización (región factible + curvas de nivel + gradiente)
 # --------------------------------------------------------------------------
+#
+# Esto es geometría para dibujar el gráfico, no parte de la optimización:
+# pulp ya encontró el óptimo en resolver_pulp(). Lo de acá abajo solo sirve
+# para poder verlo.
+
+def vertices_region_factible():
+    """
+    Vértices del polígono factible, en orden, hallados a mano intersectando
+    pares de restricciones activas — el método gráfico clásico.
+    """
+    return [
+        (0, 0),    # x1=0           ∩  x2=0
+        (4, 0),    # 6x1+4x2=24     ∩  x2=0
+        (3, 1.5),  # 6x1+4x2=24     ∩  x1+2x2=6
+        (2, 2),    # x1+2x2=6       ∩  x2=2
+        (1, 2),    # x2=2           ∩  -x1+x2=1
+        (0, 1),    # -x1+x2=1       ∩  x1=0
+    ]
+
 
 def graficar_region_factible(ax, vertices):
     """Dibuja el polígono de la región factible, relleno y con su contorno."""
@@ -113,14 +121,15 @@ def graficar_optimo(ax, x1, x2, z):
 
 def construir_grafico(x1_opt, x2_opt, z_opt):
     """Arma la figura completa combinando las funciones de graficado."""
-    x1_max = max(v[0] for v in VERTICES) * 1.3
-    x2_max = max(v[1] for v in VERTICES) * 1.3
+    vertices = vertices_region_factible()
+    x1_max = max(v[0] for v in vertices) * 1.3
+    x2_max = max(v[1] for v in vertices) * 1.3
 
     fig, ax = plt.subplots(figsize=(8, 7))
 
-    graficar_region_factible(ax, VERTICES)
+    graficar_region_factible(ax, vertices)
     graficar_curvas_nivel(ax, x1_max, x2_max)
-    graficar_vertices(ax, VERTICES)
+    graficar_vertices(ax, vertices)
     graficar_gradiente(ax, x1_max)
     graficar_optimo(ax, x1_opt, x2_opt, z_opt)
 
