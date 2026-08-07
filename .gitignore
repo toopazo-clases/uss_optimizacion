@@ -2,6 +2,5 @@ __pycache__/
 *.pyc
 .venv/
 venv/
-reddy_mikks_curvas_nivel.png
 reddy_mikks_simple.png
-banco_problemas.png
+ejemplos_2d/*.png
