@@ -1,3 +1,4 @@
 scipy
 pulp
 matplotlib
+highspy  # backend de sensibilidad (RHS ranging) usado vía pulp.HiGHS().solverModel.getRanging()
