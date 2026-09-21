@@ -1,15 +1,26 @@
 # uss_optimizacion
 
-Scripts de ejemplo del curso de optimización.
+Scripts de ejemplo del curso de Optimización (INGE E003, USS). Todos resuelven con
+pulp; los bancos de problemas se usan como fuente de verdad de los números que
+aparecen en clases, guías y laboratorios.
 
 ## Estructura
 
-- `reddy_mikks/main_simple.py` — ejemplo 2.2-1 (Reddy Mikks) de Taha, todo en
+- `ejemplo_reddy_mikks/main_simple.py` — ejemplo 2.2-1 (Reddy Mikks) de Taha, todo en
   un solo archivo (pulp + gráfico). Pensado como introducción.
-- `ejemplos_2d/main.py` — banco de problemas LP de 2 variables. Resuelve con
-  pulp (único método usado para encontrar el óptimo) y grafica región
-  factible + curvas de nivel + óptimo. Requiere indicar qué problema del
-  banco correr.
+- `pulp_LpProblem_2d/main.py` — banco de problemas de PL de 2 variables. Resuelve con
+  pulp (único método usado para encontrar el óptimo) y grafica región factible +
+  curvas de nivel + óptimo; también calcula la sensibilidad (precio sombra y rango
+  del lado derecho) con HiGHS. Requiere indicar qué problema del banco correr.
+- `pulp_LpProblem_3d/main.py` — banco de problemas de PL de 3 variables: óptimo, precio
+  sombra y su rango de validez, y costo reducido de cada variable. No grafica.
+- `pulp_LpProblem_entera/main.py` — banco de problemas de programación entera
+  (binaria, entera pura y mixta; Hillier & Lieberman, cap. 11): óptimo entero,
+  relajación de PL, verificación por enumeración exhaustiva y, para el ejemplo
+  prototipo (California Manufacturing), el árbol de ramificación y acotamiento.
+- `agregación_vs_secuencia/main.py` — diagrama de Gantt de una línea de flujo de 3
+  máquinas (Taha 2.2A-4): muestra que el LP de capacidad agregada no garantiza que
+  exista una secuencia de fabricación factible.
 
 ## Uso
 
@@ -18,8 +29,14 @@ python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 
-python reddy_mikks/main_simple.py
+python ejemplo_reddy_mikks/main_simple.py
 
-python ejemplos_2d/main.py                # sin argumento: lista los problemas disponibles
-python ejemplos_2d/main.py reddy_mikks    # resuelve y grafica ese problema
+python pulp_LpProblem_2d/main.py                       # sin argumento: lista los problemas disponibles
+python pulp_LpProblem_2d/main.py reddy_mikks           # resuelve y grafica ese problema
+
+python pulp_LpProblem_3d/main.py florista_ambulante_3d # óptimo, sensibilidad y costo reducido
+
+python pulp_LpProblem_entera/main.py california_manufacturing
+
+python agregación_vs_secuencia/main.py                 # editar la secuencia al final del archivo
 ```
