@@ -174,6 +174,25 @@ PROBLEMAS = {
         "objetivo": (8, 8),
         "restricciones": [(-2, -1, -30), (-1, -3, -20)],
     },
+    "florista_ambulante": {
+        # Usado solo para graficar la región factible en (x1,x2) -- el
+        # problema real (con un tercer producto x3) vive en
+        # pulp_LpProblem_3d/main.py, problema "florista_ambulante_3d".
+        # Esta entrada es exactamente el corte x3=0 de ese problema (mismos
+        # x1*,x2*,z*,y1*,y2*,y3*), no una versión vieja/desactualizada:
+        # x3 no aporta nada a R1/R2/R3 en x3=0, así que la región y el
+        # vértice óptimo coinciden -- se reusa acá solo para graficar (con
+        # 3 variables no se puede graficar la región 2D con este banco,
+        # que es 2D).
+        "titulo": "Florista ambulante",
+        "sentido": "max",
+        "objetivo": (2000, 1000),
+        "restricciones": [
+            (3, 1, 300),
+            (1, 1, 140),
+            (1, 3, 300),
+        ],
+    },
     "ejercicio_a": {
         "titulo": "Ejercicio A (práctica)",
         "sentido": "max",
@@ -711,7 +730,9 @@ def construir_grafico_sensibilidad(problema, filas):
     con el precio sombra y el rango de validez del lado derecho (b_i) de
     cada restricción real -- para pegar en una lámina, análogo a como
     construir_grafico_solucion resume el óptimo."""
-    lineas = [f"{problema['titulo']} -- Sensibilidad (precio sombra y su rango)"]
+    lineas = [
+        f"{problema['titulo']} -- Sensibilidad (precio sombra y su rango)"
+    ]
     for f in filas:
         if f["b_inf"] is None or f["b_sup"] is None:
             rango = "no acotado"
@@ -1167,7 +1188,9 @@ def main():
         ruta_sensibilidad = os.path.join(
             carpeta_resultados, f"{nombre}_sensibilidad.png"
         )
-        fig_sensibilidad.savefig(ruta_sensibilidad, dpi=150, bbox_inches="tight")
+        fig_sensibilidad.savefig(
+            ruta_sensibilidad, dpi=150, bbox_inches="tight"
+        )
         print(f"Sensibilidad guardada en {ruta_sensibilidad}")
 
     tex_algebra = construir_tex_algebra(problema, x1, x2, z, ruta)
