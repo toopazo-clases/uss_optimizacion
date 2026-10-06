@@ -31,6 +31,10 @@ aparecen en clases, guías y laboratorios.
 - `agregación_vs_secuencia/main.py` — diagrama de Gantt de una línea de flujo de 3
   máquinas (Taha 2.2A-4): muestra que el LP de capacidad agregada no garantiza que
   exista una secuencia de fabricación factible.
+- `solemne01_p1/main.py` — Problema 1 de la Solemne 01 (Taha 2.4F-8, planificación militar):
+  resuelve con pulp la asignación óptima de unidades azules (regulares y de reserva) a 3
+  líneas de defensa en 2 frentes. Las constantes a, b y las tropas atacantes rojas (u) están
+  al principio del archivo para editarlas a mano y volver a correr.
 
 ## Uso
 
@@ -52,4 +56,6 @@ python fuerzabruta_LpProblem_entera/main.py tabla 2 8   # tiempos -> resultados/
 python fuerzabruta_LpProblem_entera/main.py figura3d    # también: figura2d, curva, curva_puntos
 
 python agregación_vs_secuencia/main.py                 # editar la secuencia al final del archivo
+
+python solemne01_p1/main.py                            # resuelve con los valores del enunciado
 ```
