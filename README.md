@@ -44,7 +44,7 @@ python pulp_LpProblem_3d/main.py florista_ambulante_3d # óptimo, sensibilidad y
 python pulp_LpProblem_entera/main.py california_manufacturing
 
 python fuerzabruta_LpProblem_entera/main.py tabla 2 8   # tiempos -> resultados/tiempos.csv
-python fuerzabruta_LpProblem_entera/main.py figura3d    # también: figura2d, curva
+python fuerzabruta_LpProblem_entera/main.py figura3d    # también: figura2d, curva, curva_puntos
 
 python agregación_vs_secuencia/main.py                 # editar la secuencia al final del archivo
 ```

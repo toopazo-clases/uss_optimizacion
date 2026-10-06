@@ -33,7 +33,8 @@ Uso:
     python main.py tabla <n_desde> <n_hasta>   # agrega/actualiza resultados/tiempos.csv
     python main.py figura2d
     python main.py figura3d
-    python main.py curva                       # gráfico semilog a partir del CSV
+    python main.py curva                       # tiempo vs. n (semilog), a partir del CSV
+    python main.py curva_puntos                # tiempo vs. puntos revisados (log-log)
 
 La enumeración es deliberadamente "honesta": recorre toda la caja
 0 <= x_j <= u_j en Python puro (itertools.product), evalúa cada restricción
@@ -487,6 +488,50 @@ def curva():
     _guardar(fig, "curva_tiempos.png")
 
 
+def curva_puntos():
+    """Tiempo vs. puntos revisados (log-log): la fuerza bruta paga un costo
+    casi constante por punto, así que su tiempo es proporcional al tamaño de
+    la grilla."""
+    filas = _leer_csv()
+    if not filas:
+        print("No hay resultados: correr primero 'python main.py tabla 2 8'")
+        return
+    ns = sorted(filas)
+    puntos = np.array([float(filas[n]["puntos_revisados"]) for n in ns])
+    t_fb = np.array([float(filas[n]["t_fuerza_bruta_s"]) for n in ns])
+    t_pulp = np.array([float(filas[n]["t_pulp_s"]) for n in ns])
+
+    # costo por punto: mediana sobre las grillas grandes (las chicas son ruido)
+    grandes = puntos >= 1e4
+    k = float(np.median(t_fb[grandes] / puntos[grandes]))
+
+    fig, ax = plt.subplots(figsize=(8, 5.5))
+    xs = np.logspace(np.log10(puntos[0]) - 0.3, np.log10(puntos[-1]) + 0.3, 50)
+    ax.loglog(xs, k * xs, ":", color=GRIS, lw=1.5,
+              label=f"t = {k * 1e6:.1f} µs × puntos")
+    ax.loglog(puntos, t_fb, "o-", color=ROJO, lw=2, ms=7, label="Fuerza bruta (Python puro)")
+    ax.loglog(puntos, t_pulp, "s-", color=AZUL, lw=2, ms=6,
+              label="pulp / HiGHS (ramificación y acotamiento)")
+    for i, (n, x, t) in enumerate(zip(ns, puntos, t_fb)):
+        if i == len(ns) - 1:  # el último, a la izquierda para no salirse del gráfico
+            xytext, ha, va = (-10, 4), "right", "bottom"
+        else:
+            xytext, ha, va = (10, -2), "left", "center"
+        ax.annotate(f"n = {n}", (x, t), textcoords="offset points", xytext=xytext,
+                    ha=ha, va=va, fontsize=11, color=ROJO)
+
+    for t, et in [(1, "1 s"), (60, "1 min"), (600, "10 min")]:
+        ax.axhline(t, color=GRIS, lw=0.8, ls="--", alpha=0.5)
+        ax.text(xs[-1], t * 1.15, et, fontsize=10, color=GRIS, ha="right")
+    ax.set_xlim(xs[0], xs[-1])
+    ax.set_ylim(top=3000)
+    ax.set_xlabel("Puntos revisados de la grilla (escala logarítmica)", fontsize=13)
+    ax.set_ylabel("Tiempo [s] (escala logarítmica)", fontsize=13)
+    ax.grid(alpha=0.25, which="both")
+    ax.legend(fontsize=11, loc="lower right")
+    _guardar(fig, "curva_tiempos_vs_puntos.png")
+
+
 def _fmt_t(t):
     if t < 1e-3:
         return f"{t * 1e6:.0f} µs"
@@ -503,7 +548,8 @@ def main():
         "  python main.py tabla <n_desde> <n_hasta>\n"
         "  python main.py figura2d\n"
         "  python main.py figura3d\n"
-        "  python main.py curva"
+        "  python main.py curva\n"
+        "  python main.py curva_puntos"
     )
     if len(sys.argv) < 2:
         print(uso)
@@ -517,6 +563,8 @@ def main():
         figura3d()
     elif comando == "curva":
         curva()
+    elif comando == "curva_puntos":
+        curva_puntos()
     else:
         print(uso)
 
