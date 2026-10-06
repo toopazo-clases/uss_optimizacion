@@ -18,6 +18,11 @@ aparecen en clases, guías y laboratorios.
   (binaria, entera pura y mixta; Hillier & Lieberman, cap. 11): óptimo entero,
   relajación de PL, verificación por enumeración exhaustiva y, para el ejemplo
   prototipo (California Manufacturing), el árbol de ramificación y acotamiento.
+  Incluye un ejemplo de cada técnica de la sección 11.3 (alternativas
+  mutuamente excluyentes, K de N restricciones, función con N valores
+  posibles, costo fijo, representación binaria de enteros) y de decisiones
+  contingentes (sección 11.1); usado en Unidad_2_Clase y en
+  Guia_5_Programacion_Entera_Binaria_Mixta.
 - `fuerzabruta_LpProblem_entera/main.py` — enumeración exhaustiva (fuerza bruta, Python
   puro) del problema entero de la figura "PL vs. PLE" de Unidad_2_Clase, extendido a n
   variables (2 restricciones más por variable, z = x1 + ... + xn). Genera la tabla de

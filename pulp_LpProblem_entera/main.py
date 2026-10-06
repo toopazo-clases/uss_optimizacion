@@ -71,11 +71,25 @@ import pulp
 # "arbol": True (opcional) -> también imprime el árbol de ramificación y
 # acotamiento (solo tiene sentido con pocas variables, PEB y "max").
 #
-# Los problemas 1 y 2 son de Hillier & Lieberman (los datos se verificaron
-# contra las imágenes del libro: la extracción de texto pierde los signos
-# menos, p. ej. el -1 de la Tabla 11.3). Del 3 al 6 son inventados para
-# práctica (inspirados en las aplicaciones de la sección 11.2 y las
-# formulaciones de la sección 11.3), no de ningún libro.
+# california_manufacturing, supersuds_excluyentes y good_products son de
+# Hillier & Lieberman (los datos se verificaron contra las imágenes del libro:
+# la extracción de texto pierde los operadores matemáticos, p. ej. el -1 de la
+# Tabla 11.3 o el <= de las restricciones).
+# red_distribucion, programacion_actividades, asignacion_flota y
+# minera_una_u_otra son inventados para práctica (inspirados en las
+# aplicaciones de la sección 11.2 y las formulaciones de la sección 11.3), no
+# de ningún libro. minera_k_de_n y costo_fijo_lineas también son inventados
+# (K de N, costo fijo). representacion_binaria_pe/peb sí reproduce las cotas y
+# la primera restricción del ejemplo del libro (sección 11.3, p. 442); la
+# segunda restricción y la función objetivo se inventaron para tener un
+# problema completo que resolver, en sus dos formulaciones equivalentes (PE
+# con enteros generales, y PEB tras sustituir la representación binaria).
+#
+# OJO: el orden de este banco (el de arriba) NO coincide con la numeración de
+# "Problema N" de Guias/Guia_5_Programacion_Entera_Binaria_Mixta (que sigue el
+# orden de las 6 técnicas de la Unidad 2, más un Problema 0 introductorio y los
+# Problemas 7-9, que no nombran su técnica en el título); cada docstring indica
+# su Problema N correspondiente.
 
 
 def _supersuds(formulacion):
@@ -85,33 +99,39 @@ def _supersuds(formulacion):
     comerciales (j = 0..3); NO es lineal en j (viola la proporcionalidad),
     por eso se usan binarias auxiliares y_ij. Dos formulaciones (la del
     libro, p. 445-447):
-      "excluyentes":  y_ij = 1 si x_i = j, con j = 1, 2, 3. sum_j y_ij <= 1
-                      (alternativas mutuamente excluyentes: todas en 0
-                      significa x_i = 0), sum j*y_ij = 5. 9 variables.
-                      Óptimo: y12 = y33 = 1 (x = (2, 0, 3)), Z = 7. Es la
-                      que usa la Guía. (Equivalente: incluir y_i0 con
-                      sum_j y_ij = 1 para j = 0..3, 12 variables; mismo Z,
-                      mismas 12 combinaciones factibles, verificado.)
-      "contingentes": y_ij = 1 si x_i >= j (j = 1, 2, 3).  y_i,j+1 <= y_ij
-                      (decisiones contingentes), sum y_ij = 5; la ganancia
-                      de y_ij es el incremento ganancia[i][j] -
+      "excluyentes":  y_ij = 1 si x_i = j, con j = 0, 1, 2, 3 (incluye y_i0,
+                      "el producto i no recibe comerciales", tal como lo
+                      escribe el libro). sum_j y_ij = 1 (alternativas
+                      mutuamente excluyentes: exactamente una cantidad por
+                      producto, sección 11.3, "Funciones con N valores
+                      posibles"), sum j*y_ij = 5. 12 variables. Óptimo:
+                      y12 = y20 = y33 = 1 (x = (2, 0, 3)), Z = 7. Es la que
+                      usa la Guía.
+      "contingentes": y_ij = 1 si x_i >= j (j = 1, 2, 3); no hace falta y_i0
+                      (equivale a que las tres y_ij valgan 0). y_i,j+1 <=
+                      y_ij (decisiones contingentes), sum y_ij = 5; la
+                      ganancia de y_ij es el incremento ganancia[i][j] -
                       ganancia[i][j-1]. Mismo óptimo, Z = 7 (libro: y11 =
-                      y12 = y31 = y32 = y33 = 1). Hoy comentada en la Guía
-                      (sección 2.4).
-    Usado en Guias/Guia_5_Programacion_Entera_Binaria_Mixta (Problema 2)."""
+                      y12 = y31 = y32 = y33 = 1). No la usa ningún problema
+                      de la Guía (se sacó de contenido.tex; se conserva acá
+                      como formulación alternativa verificada, por si se
+                      reutiliza más adelante).
+    "excluyentes" es la que usa la Guía (Problema 3)."""
     ganancia = {1: [0, 1, 3, 3], 2: [0, 0, 2, 3], 3: [0, -1, 2, 4]}
-    js = (1, 2, 3)
-    nombres = [f"y{i}{j}" for i in (1, 2, 3) for j in js]
     if formulacion == "excluyentes":
+        js = (0, 1, 2, 3)
+        nombres = [f"y{i}{j}" for i in (1, 2, 3) for j in js]
         objetivo = {f"y{i}{j}": ganancia[i][j] for i in (1, 2, 3) for j in js}
         restricciones = [
-            ({f"y{i}{j}": 1 for j in js}, "<=", 1, f"Producto{i}_una_cantidad")
+            ({f"y{i}{j}": j for i in (1, 2, 3) for j in js}, "==", 5, "Cinco_comerciales")
+        ]
+        restricciones += [
+            ({f"y{i}{j}": 1 for j in js}, "==", 1, f"Producto{i}_una_cantidad")
             for i in (1, 2, 3)
         ]
-        restricciones.append(
-            ({f"y{i}{j}": j for i in (1, 2, 3) for j in js}, "==", 5, "Cinco_comerciales")
-        )
     else:
+        js = (1, 2, 3)
+        nombres = [f"y{i}{j}" for i in (1, 2, 3) for j in js]
         objetivo = {
             f"y{i}{j}": ganancia[i][j] - ganancia[i][j - 1]
             for i in (1, 2, 3)
@@ -135,7 +155,7 @@ def _supersuds(formulacion):
 
 
 def _red_distribucion():
-    """Problema 3 de la Guía: diseño de una red de distribución (sección
+    """Problema 6 de la Guía: diseño de una red de distribución (sección
     11.2, "Diseño de una red de producción y distribución"). Se eligen
     centros de distribución (CD) a abrir entre 3 candidatos y a cada una de
     4 zonas de mercado se le asigna exactamente 1 CD (grupo de alternativas
@@ -195,7 +215,7 @@ def _red_distribucion():
 
 
 def _programacion_actividades():
-    """Problema 4 de la Guía: programación de actividades interrelacionadas
+    """Problema 8 de la Guía: programación de actividades interrelacionadas
     (sección 11.2, "Programación de actividades interrelacionadas"). Cada
     actividad inicia en exactamente 1 de las 5 semanas (grupo de
     alternativas mutuamente excluyentes: la variable de cada semana es 1
@@ -248,7 +268,7 @@ def _programacion_actividades():
 
 
 def _asignacion_flota():
-    """Problema 5 de la Guía: asignación de flota (sección 11.2, "Aplicaciones
+    """Problema 9 de la Guía: asignación de flota (sección 11.2, "Aplicaciones
     a líneas aéreas"). Cada una de 4 rutas se opera con exactamente 1 de 3
     tipos de avión (grupo de alternativas mutuamente excluyentes), con
     disponibilidad limitada de cada tipo. Sub-decisión contingente al tipo
@@ -306,7 +326,7 @@ def _asignacion_flota():
 
 
 def _minera_una_u_otra():
-    """Problema 6 de la Guía: restricciones "una u otra" (sección 11.3).
+    """Problema 1 de la Guía: restricciones "una u otra" (sección 11.3).
     Grupos de alternativas mutuamente excluyentes: energía (a lo más 1 de
     Solar, Diésel, Red) y transporte (a lo más 1 de Camiones, Correa).
     Sub-decisiones contingentes al padre: Monitoreo solo con Solar,
@@ -326,7 +346,7 @@ def _minera_una_u_otra():
     van = {"Solar": 30, "Diesel": 18, "Red": 22, "Camiones": 25, "Correa": 42, "Monitoreo": 12, "Mantencion": 9}
     capital = {"Solar": 16, "Diesel": 8, "Red": 11, "Camiones": 10, "Correa": 24, "Monitoreo": 5, "Mantencion": 4}
     horas = {"Solar": 30, "Diesel": 12, "Red": 10, "Camiones": 14, "Correa": 50, "Monitoreo": 20, "Mantencion": 10}
-    tope_capital, tope_horas, M = 30, 50, 200
+    tope_capital, tope_horas, M = 30, 50, 9999
     restricciones = [
         ({"Solar": 1, "Diesel": 1, "Red": 1}, "<=", 1, "UnaEnergia"),
         ({"Camiones": 1, "Correa": 1}, "<=", 1, "UnTransporte"),
@@ -348,6 +368,189 @@ def _minera_una_u_otra():
     }
 
 
+def _minera_k_de_n():
+    """Problema 2 de la Guía: "deben cumplirse K de N restricciones" (sección
+    11.3, pp. 437-438), generalización directa de "una u otra" (que es el
+    caso particular K=1, N=2; ver minera_una_u_otra). Una constructora evalúa
+    3 proyectos independientes x1, x2, x3 (sin exclusión mutua) y, por
+    política de riesgo del directorio, se permite superar hasta 2 de los 4
+    topes de recursos (capital, horas de ingeniería, horas de maquinaria
+    pesada, horas de grúa); es decir, deben cumplirse al menos K=2 de las
+    N=4 restricciones. Con M grande y 4 binarias auxiliares y1..y4 (yi=1
+    elimina la restricción i, tal como en la fórmula general del libro):
+        capital     <= 25 + M*y1
+        ingenieria  <= 20 + M*y2
+        maquinaria  <= 22 + M*y3
+        grua        <= 18 + M*y4
+        y1 + y2 + y3 + y4 <= N - K = 2
+    Óptimo: x1 + x3, Z = 47, con y3 = y4 = 1 (se relajan maquinaria, 40 > 22,
+    y grúa, 20 > 18; capital = 22 <= 25 e ingeniería = 18 <= 20 sí se
+    cumplen). Si se exigieran las 4 restricciones a la vez (K=N=4), el
+    óptimo baja a 25 (solo x1); con K=3 (relajar 1 de 4) sube a 30 (solo
+    x2, relaja solo grúa); con K=1 (relajar 3 de 4) sube a 52 (x2+x3).
+    Verificado por fuerza bruta sobre las 8 combinaciones de proyectos."""
+    proyectos = ["x1", "x2", "x3"]
+    van = {"x1": 25, "x2": 30, "x3": 22}
+    capital = {"x1": 12, "x2": 15, "x3": 10}
+    ingenieria = {"x1": 10, "x2": 18, "x3": 8}
+    maquinaria = {"x1": 14, "x2": 10, "x3": 16}
+    grua = {"x1": 8, "x2": 20, "x3": 12}
+    tope_capital, tope_ingenieria, tope_maquinaria, tope_grua = 25, 20, 22, 18
+    m_grande = 9999
+    fila_capital = {p: capital[p] for p in proyectos}
+    fila_capital["y1"] = -m_grande
+    fila_ingenieria = {p: ingenieria[p] for p in proyectos}
+    fila_ingenieria["y2"] = -m_grande
+    fila_maquinaria = {p: maquinaria[p] for p in proyectos}
+    fila_maquinaria["y3"] = -m_grande
+    fila_grua = {p: grua[p] for p in proyectos}
+    fila_grua["y4"] = -m_grande
+    restricciones = [
+        (fila_capital, "<=", tope_capital, "Capital_si_y1_0"),
+        (fila_ingenieria, "<=", tope_ingenieria, "Ingenieria_si_y2_0"),
+        (fila_maquinaria, "<=", tope_maquinaria, "Maquinaria_si_y3_0"),
+        (fila_grua, "<=", tope_grua, "Grua_si_y4_0"),
+        ({"y1": 1, "y2": 1, "y3": 1, "y4": 1}, "<=", 2, "AlMenosDosDeCuatro"),
+    ]
+    return {
+        "titulo": "Constructora, K de N restricciones (H&L, sección 11.3): PEB, 7 variables",
+        "sentido": "max",
+        "variables": proyectos + ["y1", "y2", "y3", "y4"],
+        "objetivo": {p: van[p] for p in proyectos},
+        "restricciones": restricciones,
+    }
+
+
+def _costo_fijo_lineas():
+    """Problema 4 de la Guía: "problema de costo fijo" (sección 11.3, pp.
+    439-441). Una empresa debe cumplir un pedido de al menos 100 unidades y
+    puede usar hasta 3 líneas de producción; cada línea que se active paga
+    un cargo fijo de preparación kj, más un costo variable cj por unidad,
+    hasta su capacidad uj. Minimiza el costo total. Sigue al libro al pie de
+    la letra (p. 440): un solo M grande y obviamente artificial (no la
+    capacidad) vincula xj con yj en las N restricciones "xj <= M*yj, para
+    j=1,...,n"; la capacidad de cada línea es una restricción aparte
+    ("xj <= uj"), no el M. (Usar uj como M de su propia línea también sería
+    válido -- de hecho más ajustado -- pero no es lo que escribe el libro.)
+    Óptimo: línea A con 10 unidades, línea B con 90 unidades (llena su
+    capacidad), línea C cerrada, Z = 350. La línea C tiene el menor costo
+    fijo (30) pero el mayor costo variable (6), así que no conviene
+    activarla; B tiene el costo variable más bajo (2) así que se llena al
+    máximo antes de recurrir a A."""
+    lineas = ["A", "B", "C"]
+    fijo = {"A": 50, "B": 80, "C": 30}
+    variable = {"A": 4, "B": 2, "C": 6}
+    capacidad = {"A": 60, "B": 90, "C": 40}
+    pedido = 100
+    m_grande = 9999
+    nombres = [f"x_{j}" for j in lineas] + [f"y_{j}" for j in lineas]
+    objetivo = {f"x_{j}": variable[j] for j in lineas}
+    objetivo.update({f"y_{j}": fijo[j] for j in lineas})
+    restricciones = [({f"x_{j}": 1 for j in lineas}, ">=", pedido, "Pedido_minimo")]
+    for j in lineas:
+        restricciones.append(({f"x_{j}": 1}, "<=", capacidad[j], f"Linea_{j}_capacidad"))
+    for j in lineas:
+        restricciones.append(
+            ({f"x_{j}": 1, f"y_{j}": -m_grande}, "<=", 0, f"Linea_{j}_requiere_apertura")
+        )
+    return {
+        "titulo": "Líneas de producción, costo fijo (H&L, sección 11.3): PEM, 6 variables",
+        "sentido": "min",
+        "variables": nombres,
+        "tipos": {f"x_{j}": "continua" for j in lineas},
+        "objetivo": objetivo,
+        "restricciones": restricciones,
+    }
+
+
+def _representacion_binaria_pe():
+    """Problema 5 de la Guía (formulación PE): formulación original de PE
+    pura (dos variables enteras generales), para comparar con su equivalente
+    PEB (_representacion_binaria_peb) obtenido por representación binaria
+    (sección 11.3, pp. 441-442). La cota de x1 (u1=5) y la restricción 2x1+3x2<=30 son las del
+    ejemplo del libro; la cota de x2 (u2=10, implícita en el libro) se agrega
+    como restricción explícita, y x1+x2<=9 se inventó para tener un óptimo
+    no trivial. Óptimo: x1=5, x2=4, Z=41."""
+    return {
+        "titulo": "Representación binaria de enteros (H&L, sección 11.3): formulación PE original, 2 variables",
+        "sentido": "max",
+        "objetivo": (5, 4),
+        "tipos": ("entera", "entera"),
+        "restricciones": [
+            (1, 0, "<=", 5),  # cota u1 = 5 (ejemplo del libro)
+            (0, 1, "<=", 10),  # cota u2 = 10 (ejemplo del libro)
+            (2, 3, "<=", 30),  # 2x1 + 3x2 <= 30 (restricción del libro, p. 442)
+            (1, 1, "<=", 9),  # x1 + x2 <= 9 (inventada, para un óptimo no trivial)
+        ],
+    }
+
+
+def _representacion_binaria_peb():
+    """Problema 5 de la Guía (formulación PEB): el mismo problema de
+    _representacion_binaria_pe, pero con x1 y x2 sustituidas por su
+    representación binaria (sección 11.3, p. 442): con N1=2 (porque
+    2^2<=5<2^3) y N2=3 (porque 2^3<=10<2^4),
+        x1 = y0 + 2y1 + 4y2,
+        x2 = y3 + 2y4 + 4y5 + 8y6.
+    Debe dar el mismo óptimo que _representacion_binaria_pe (Z=41), con x1=y0+2y1+4y2=5 y
+    x2=y3+2y4+4y5+8y6=4 (es decir, (y0,y1,y2)=(1,0,1) y
+    (y3,y4,y5,y6)=(0,0,1,0))."""
+    return {
+        "titulo": "Representación binaria de enteros (H&L, sección 11.3): formulación PEB equivalente, 7 variables",
+        "sentido": "max",
+        "variables": ["y0", "y1", "y2", "y3", "y4", "y5", "y6"],
+        "objetivo": {"y0": 5, "y1": 10, "y2": 20, "y3": 4, "y4": 8, "y5": 16, "y6": 32},
+        "restricciones": [
+            ({"y0": 1, "y1": 2, "y2": 4}, "<=", 5, "x1_acotada"),
+            (
+                {"y0": 2, "y1": 4, "y2": 8, "y3": 3, "y4": 6, "y5": 12, "y6": 24},
+                "<=",
+                30,
+                "2x1_mas_3x2",
+            ),
+            (
+                {"y0": 1, "y1": 2, "y2": 4, "y3": 1, "y4": 2, "y5": 4, "y6": 8},
+                "<=",
+                9,
+                "x1_mas_x2",
+            ),
+        ],
+    }
+
+
+def _good_products():
+    """Problema 7 de la Guía: ejemplo 1 de la sección 11.4 (Good Products
+    Co., pp. 442-444), que combina dos técnicas de la sección 11.3 en un
+    mismo modelo PEM. x1, x2, x3 son las tasas de producción (continuas,
+    >=0) de 3 productos nuevos; y1, y2, y3 son binarias auxiliares con
+    xj <= M*yj (M = 9999) y sum yj <= 2: "a lo más 2 de los 3 productos
+    se fabrican" (mismo mecanismo Big-M + conteo que la sección "Deben
+    cumplirse K de N restricciones", aunque el libro no lo llama así aquí).
+    y4 es la binaria auxiliar de "restricciones de tipo una u otra" entre
+    las dos plantas (y4 = 0: se exige el tope de la planta 1; y4 = 1: se
+    exige el de la planta 2). Óptimo del libro: y1=1, y2=0, y3=1, y4=1,
+    x1=5.5, x2=0, x3=9, Z=54.5 (miles de dólares)."""
+    M = 9999
+    return {
+        "titulo": "Good Products Co. (H&L, sección 11.4, ejemplo 1): PEM, 7 variables",
+        "sentido": "max",
+        "variables": ["x1", "x2", "x3", "y1", "y2", "y3", "y4"],
+        "tipos": {"x1": "continua", "x2": "continua", "x3": "continua"},
+        "objetivo": {"x1": 5, "x2": 7, "x3": 3},
+        "restricciones": [
+            ({"x1": 1}, "<=", 7, "VentasPotenciales_x1"),
+            ({"x2": 1}, "<=", 5, "VentasPotenciales_x2"),
+            ({"x3": 1}, "<=", 9, "VentasPotenciales_x3"),
+            ({"x1": 1, "y1": -M}, "<=", 0, "x1_requiere_y1"),
+            ({"x2": 1, "y2": -M}, "<=", 0, "x2_requiere_y2"),
+            ({"x3": 1, "y3": -M}, "<=", 0, "x3_requiere_y3"),
+            ({"y1": 1, "y2": 1, "y3": 1}, "<=", 2, "AlMenosUnProductoFuera"),
+            ({"x1": 3, "x2": 4, "x3": 2, "y4": -M}, "<=", 30, "Planta1_si_y4_0"),
+            ({"x1": 4, "x2": 6, "x3": 2, "y4": M}, "<=", 40 + M, "Planta2_si_y4_1"),
+        ],
+    }
+
+
 PROBLEMAS = {
     "california_manufacturing": {
         # Ejemplo prototipo de la sección 11.1 de Hillier & Lieberman,
@@ -359,7 +562,7 @@ PROBLEMAS = {
         # Francisco. Óptimo del libro: (x1,x2,x3,x4) = (1,1,0,0), Z = 14;
         # relajación de PL: (5/6,1,0,1), Z = 16.5 (el libro la escribe
         # 16 1/2). Usado en Guias/Guia_5_Programacion_Entera_Binaria_Mixta
-        # (Problema 1).
+        # (Problema 0).
         "titulo": "California Manufacturing Co. (H&L, sección 11.1): PEB, 4 variables",
         "sentido": "max",
         "arbol": True,
@@ -378,6 +581,11 @@ PROBLEMAS = {
     "programacion_actividades": _programacion_actividades(),
     "asignacion_flota": _asignacion_flota(),
     "minera_una_u_otra": _minera_una_u_otra(),
+    "minera_k_de_n": _minera_k_de_n(),
+    "costo_fijo_lineas": _costo_fijo_lineas(),
+    "representacion_binaria_pe": _representacion_binaria_pe(),
+    "representacion_binaria_peb": _representacion_binaria_peb(),
+    "good_products": _good_products(),
 }
 
 EPS = 1e-6
