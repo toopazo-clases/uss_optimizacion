@@ -408,10 +408,16 @@ def figura3d():
     ])
     ax.scatter(*puntos.T, s=4, color=AZUL, alpha=0.25, depthshade=False)
 
-    # piso x3 = 0: la figura original
-    piso = V[np.abs(V[:, 2]) < EPS]
-    piso = _ordenar_en_plano(piso, np.array([0, 0, 1.0]))
-    ax.plot(*np.r_[piso, piso[:1]].T, color=NAVY, lw=2)
+    # aristas y vértices de todo el poliedro (el piso x3 = 0 es la figura original)
+    aristas = set()
+    for pol in poligonos:
+        for p, q in zip(pol, np.roll(pol, -1, axis=0)):
+            aristas.add(tuple(sorted((tuple(np.round(p, 6)), tuple(np.round(q, 6))))))
+    for p, q in aristas:
+        ax.plot(*np.array([p, q]).T, color=NAVY, lw=1.6)
+    rojos = np.array([x_lp] + [list(x) for x in optimos], dtype=float)
+    solo_vertices = np.array([v for v in V if np.min(np.linalg.norm(rojos - v, axis=1)) > 1e-4])
+    ax.scatter(*solo_vertices.T, s=30, color=NAVY, depthshade=False)
     for et, (px, py) in PUNTOS_FIGURA.items():
         ax.scatter(px, py, 0, s=18, color=GRIS, depthshade=False)
         ax.text(px + 0.15, py - 0.55, 0, et, fontsize=13, color=NAVY, fontweight="bold")
