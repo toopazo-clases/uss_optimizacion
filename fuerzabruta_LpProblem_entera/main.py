@@ -337,7 +337,7 @@ def figura2d():
     ax.plot(xs, (48 - 2 * xs) / 7, **estilos)
     ax.plot(xs, 39 / 2 - 2.5 * xs, **estilos)
     for et, (px, py) in {"R1": (0.15, 6.15), "R2": (7.1, 0.15), "R3": (0.15, 7.0),
-                         "R4": (6.35, 7.4)}.items():
+                         "R4": (5.0, 7.3)}.items():
         ax.text(px, py, et, color="#2E9E3E", fontsize=12, fontweight="bold")
 
     # curvas de nivel de z
