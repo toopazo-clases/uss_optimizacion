@@ -14,9 +14,9 @@ Guias/Guia_6_Ramificación_y_acotamiento:
 
 1. El árbol de referencia, con las reglas que se les dan a los estudiantes:
      - se ramifica la PRIMERA variable fraccionaria (x1 antes que x2), en
-       x_j <= floor(v) (hijo "-1") y x_j >= floor(v) + 1 (hijo "-2");
-     - los dos hijos se resuelven (acotamiento) y se prueban APENAS se
-       crean, primero el hijo "-1"; las pruebas se aplican en este orden:
+       x_j <= floor(v) (subproblema "-1") y x_j >= floor(v) + 1 (subproblema "-2");
+     - los dos subproblemas se resuelven (acotamiento) y se prueban APENAS se
+       crean, primero el "-1"; las pruebas se aplican en este orden:
          1) infactible                         -> podar (rojo)
          2) Z <= mejor solución entera conocida -> podar por cota (amarillo)
          3) solución entera                    -> podar (verde); pasa a ser
@@ -91,7 +91,7 @@ def fraccionarias(x):
 
 
 def hijos(lo, hi, j, v):
-    """Cajas de los dos hijos al ramificar x_j = v: x_j <= floor(v) y
+    """Cajas de los dos subproblemas al ramificar x_j = v: x_j <= floor(v) y
     x_j >= floor(v) + 1."""
     f = math.floor(v)
     hi1 = list(hi)
