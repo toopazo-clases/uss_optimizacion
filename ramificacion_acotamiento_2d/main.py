@@ -83,6 +83,17 @@ PROBLEMAS = {
         "objetivo": (5, 2),
         "restricciones": [((1, 8), 36, "R1"), ((8, 2), 51, "R2")],
     },
+    # Problema 3 de Evaluaciones/Solemne02 (Formas A y B): 11 nodos, 2 hojas
+    # infactibles, 2 enteras y 2 por cota, óptimo único, tabla de una página;
+    # árboles de forma distinta entre las dos formas.
+    "solemne02_a": {
+        "objetivo": (3, 5),
+        "restricciones": [((1, 7), 31, "R1"), ((5, 6), 47, "R2")],
+    },
+    "solemne02_b": {
+        "objetivo": (1, 4),
+        "restricciones": [((1, 9), 63, "R1"), ((2, 5), 54, "R2")],
+    },
 }
 
 # Problema activo (lo fija usar(); las funciones de abajo leen estos globales)
