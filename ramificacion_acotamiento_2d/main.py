@@ -35,8 +35,8 @@ Guias/Guia_6_Ramificación_y_acotamiento:
    árbol de referencia (sirven, p. ej., para "¿y si se ramifica en x2?").
 
 Uso:
-    python main.py arbol   # árbol de referencia, paso a paso
-    python main.py tabla   # tabla de subproblemas (y resultados/*.csv, *.tex)
+    python main.py arbol p1   # árbol de referencia, paso a paso
+    python main.py tabla p1   # tabla de subproblemas y recorrido (resultados/p1/)
 """
 
 import csv
@@ -47,16 +47,61 @@ import sys
 
 import pulp
 
-CARPETA_RESULTADOS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "resultados")
+CARPETA_BASE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "resultados")
 
-OBJETIVO = (1, 1)
-RESTRICCIONES = [
-    ((0, 1), 6, "R1"),
-    ((1, 0), 7, "R2"),
-    ((2, 7), 48, "R3"),
-    ((5, 2), 39, "R4"),
-]
-N = 2
+# --------------------------------------------------------------------------
+# Banco de problemas (max c x, A x <= b, x >= 0 enteras). Cada uno es un
+# Problema de Guias/Guia_6_Ramificación_y_acotamiento; p1 es el de la figura
+# "PL vs. PLE" de la clase (Ejemplo 2).
+# --------------------------------------------------------------------------
+PROBLEMAS = {
+    "p1": {
+        "objetivo": (1, 1),
+        "restricciones": [
+            ((0, 1), 6, "R1"),
+            ((1, 0), 7, "R2"),
+            ((2, 7), 48, "R3"),
+            ((5, 2), 39, "R4"),
+        ],
+    },
+    # p2 a p5: encontrados con una búsqueda aleatoria filtrada (2 variables,
+    # sin restricciones redundantes, óptimo entero único, los tres colores
+    # de poda, árbol de 7 a 9 nodos y tabla que cabe en una página).
+    "p2": {
+        "objetivo": (5, 3),
+        "restricciones": [((9, 1), 19, "R1"), ((2, 5), 26, "R2")],
+    },
+    "p3": {
+        "objetivo": (6, 4),
+        "restricciones": [((3, 9), 44, "R1"), ((5, 7), 41, "R2"), ((9, 1), 35, "R3")],
+    },
+    "p4": {
+        "objetivo": (5, 4),
+        "restricciones": [((5, 7), 48, "R1"), ((9, 1), 60, "R2")],
+    },
+    "p5": {
+        "objetivo": (5, 2),
+        "restricciones": [((1, 8), 36, "R1"), ((8, 2), 51, "R2")],
+    },
+}
+
+# Problema activo (lo fija usar(); las funciones de abajo leen estos globales)
+OBJETIVO = None
+RESTRICCIONES = None
+N = None
+CARPETA_RESULTADOS = None
+
+
+def usar(nombre):
+    """Activa un problema del banco (y su carpeta resultados/<nombre>)."""
+    global OBJETIVO, RESTRICCIONES, N, CARPETA_RESULTADOS
+    problema = PROBLEMAS[nombre]
+    OBJETIVO = tuple(problema["objetivo"])
+    RESTRICCIONES = list(problema["restricciones"])
+    N = len(OBJETIVO)
+    CARPETA_RESULTADOS = os.path.join(CARPETA_BASE, nombre)
+
+
 EPS = 1e-6
 SEMILLA_TABLA = 2026  # orden (mezclado) de las filas de la tabla de subproblemas
 
@@ -365,6 +410,74 @@ def decision_latex(nodo, nodos, incumbentes):
     return r"podar \ussfinmuestra{USSfinCota} ($" + fmt(nodo["z"]) + r"\le" + fmt(mejor) + "$)"
 
 
+def expresion_latex(coefs):
+    """5x_1 + 3x_2 (omite coeficientes 1 y términos 0)."""
+    partes = []
+    for j, c in enumerate(coefs):
+        if c == 0:
+            continue
+        termino = ("" if c == 1 else str(c)) + f"x_{j + 1}"
+        partes.append(termino)
+    return " + ".join(partes)
+
+
+def modelo_latex():
+    """Modelo compacto: máx z = ... s.a. (restricciones en 2 columnas)."""
+    filas = (len(RESTRICCIONES) + 1) // 2
+    celdas = [rf"\text{{{et}:}} & {expresion_latex(a)} \le {b}" for a, b, et in RESTRICCIONES]
+    lineas = []
+    for i in range(filas):
+        izq = celdas[i]
+        der = celdas[i + filas] if i + filas < len(celdas) else "&"
+        lineas.append(f"    {izq} \\qquad & {der} \\\\")
+    variables = ",\\ ".join(f"x_{j + 1}" for j in range(N))
+    return ("\\[\n  \\max\\ z = " + expresion_latex(OBJETIVO) +
+            "\n  \\qquad \\text{s.a.} \\qquad\n  \\begin{array}{llll}\n" + "\n".join(lineas) +
+            "\n  \\end{array}\n  \\qquad " + variables + " \\ge 0 \\text{ enteras}\n\\]\n")
+
+
+def arbol_latex(nodos):
+    """Árbol solución en TikZ: hojas en orden de izquierda a derecha
+    (subproblema «-1» a la izquierda), padres centrados sobre sus hijos."""
+    hijos_de = {n: [] for n in nodos}
+    for n in sorted(nodos.values(), key=lambda n: n["orden"]):
+        if n["padre"]:
+            hijos_de[n["padre"]].append(n["nombre"])
+    pos = {}
+    hojas = [0]
+
+    def ubicar(nombre, prof):
+        if not hijos_de[nombre]:
+            pos[nombre] = (hojas[0] * 3.0, -prof * 2.0)
+            hojas[0] += 1
+            return
+        for h in hijos_de[nombre]:
+            ubicar(h, prof + 1)
+        xs = [pos[h][0] for h in hijos_de[nombre]]
+        pos[nombre] = (sum(xs) / len(xs), -prof * 2.0)
+
+    ubicar("P", 0)
+    centro = pos["P"][0]
+    tikz = lambda nombre: nombre.replace("-", "m")
+    lineas = ["\\begin{tikzpicture}[x=1cm, y=1cm]"]
+    for n in sorted(nodos.values(), key=lambda n: n["orden"]):
+        x, y = pos[n["nombre"]]
+        texto = nombre_latex(n["nombre"])
+        if n["x"] is not None:
+            texto += f"\\\\$Z^*{{=}}{fmt(n['z'])}$\\\\$X^*{{=}}({fmt(n['x'][0])},\\,{fmt(n['x'][1])})$"
+        lineas.append(f"  \\node[nodoba] ({tikz(n['nombre'])}) at ({x - centro:.2f}, {y:.2f}) {{{texto}}};")
+    for n in sorted(nodos.values(), key=lambda n: n["orden"]):
+        if n["padre"]:
+            lineas.append(f"  \\draw[flechaba] ({tikz(n['padre'])}) -- ({tikz(n['nombre'])})"
+                          f" node[midway, etiqba] {{{a_latex(n['agregada'])}}};")
+    colores = {ROJO: "USSfinInfactible", AMARILLO: "USSfinCota", VERDE: "USSfinEntera"}
+    for n in sorted(nodos.values(), key=lambda n: n["orden"]):
+        if n["estado"] in colores:
+            lineas.append(f"  \\ussfin{{{tikz(n['nombre'])}}}{{{colores[n['estado']]}}}")
+    lineas.append("\\end{tikzpicture}")
+    return "\n".join(lineas) + "\n"
+
+
 def nombre_latex(nombre):
     if nombre == "P":
         return "$P$"
@@ -435,15 +548,28 @@ def comando_tabla():
             x = f"$({fmt(n['x'][0])},\\,{fmt(n['x'][1])})$" if n["x"] else "infactible"
             fh.write(f"{k} & {nombre_latex(n['nombre'])} & {agregada} & {a_latex(texto_camino(camino))}"
                      f" & {ids[camino]} & {z} & {x} & {decision_latex(n, nodos, mejor_al_podar)} \\\\\n")
+    cabecera = "% Generado por uss_optimizacion/ramificacion_acotamiento_2d/main.py tabla\n"
+    inc = nodos[incumbente]
+    extras = {
+        "modelo.tex": modelo_latex(),
+        "arbol.tex": arbol_latex(nodos),
+        "optimo.tex": (f"$X^*=({fmt(inc['x'][0])},\\,{fmt(inc['x'][1])})$, $Z^*={fmt(inc['z'])}$"
+                       f" (subproblema {nombre_latex(incumbente)}).\n"),
+    }
+    for archivo, texto in extras.items():
+        with open(os.path.join(CARPETA_RESULTADOS, archivo), "w", encoding="utf-8") as fh:
+            fh.write(cabecera + texto)
     print("Guardado:", ruta_csv)
     print("Guardado:", ruta_rec)
+    print("Guardado: modelo.tex, arbol.tex, optimo.tex")
 
 
 def main():
     comandos = {"arbol": comando_arbol, "tabla": comando_tabla}
-    if len(sys.argv) != 2 or sys.argv[1] not in comandos:
-        print("Uso: python main.py arbol | tabla")
+    if len(sys.argv) != 3 or sys.argv[1] not in comandos or sys.argv[2] not in PROBLEMAS:
+        print(f"Uso: python main.py arbol|tabla <problema>   (problemas: {', '.join(PROBLEMAS)})")
         return
+    usar(sys.argv[2])
     comandos[sys.argv[1]]()
 
 
