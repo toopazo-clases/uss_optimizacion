@@ -256,7 +256,7 @@ def tabla():
     for i, camino in enumerate(caminos, start=1):
         r = relajacion(*caja_de(camino))
         filas.append({
-            "id": f"T{i:02d}",
+            "id": f"F{i}",
             "camino": camino,
             "texto": texto_camino(camino),
             "x": r[0] if r else None,
@@ -306,6 +306,16 @@ def texto_restriccion(restr):
 
 def texto_camino(camino):
     return ", ".join(texto_restriccion(r) for r in camino) if camino else "—"
+
+
+def celda_camino_latex(camino):
+    """Celda de la tabla: una restricción por línea (apiladas), «---» si es P."""
+    if not camino:
+        return "---"
+    lineas = r" \\ ".join(a_latex(texto_restriccion(r)).strip("$") for r in camino)
+    # espaciado propio (más ajustado que el de la tabla) para las líneas apiladas
+    return (r"{\setlength{\extrarowheight}{0pt}\renewcommand{\arraystretch}{1.0}"
+            r"$\begin{array}{@{}l@{}}" + lineas + r"\end{array}$}")
 
 
 def a_latex(texto):
@@ -384,15 +394,28 @@ def comando_tabla():
                 w.writerow([f["id"], f["texto"], fmt(f["z"]), fmt_x(f["x"])])
             else:
                 w.writerow([f["id"], f["texto"], "", "infactible"])
-    ruta_tex = os.path.join(CARPETA_RESULTADOS, "tabla_subproblemas.tex")
-    with open(ruta_tex, "w", encoding="utf-8") as fh:
-        fh.write("% Generado por uss_optimizacion/ramificacion_acotamiento_2d/main.py tabla\n")
-        for f in filas:
-            if f["x"]:
-                resto = f"{fmt(f['z'])} & $({fmt(f['x'][0])},\\,{fmt(f['x'][1])})$"
-            else:
-                resto = "--- & infactible"
-            fh.write(f"{f['id']} & {a_latex(f['texto'])} & {resto} \\\\\n")
+    # la tabla va en 2 columnas: se parte en dos mitades de altura parecida
+    # (altura de una fila = cantidad de restricciones apiladas, mínimo 1)
+    alturas = [max(1, len(f["camino"])) for f in filas]
+    total, acumulado, corte = sum(alturas), 0, len(filas)
+    for k, h in enumerate(alturas):
+        acumulado += h
+        if acumulado >= total / 2:
+            corte = k + 1
+            break
+    for parte, trozo in (("1", filas[:corte]), ("2", filas[corte:])):
+        ruta_tex = os.path.join(CARPETA_RESULTADOS, f"tabla_subproblemas_{parte}.tex")
+        with open(ruta_tex, "w", encoding="utf-8") as fh:
+            fh.write("% Generado por uss_optimizacion/ramificacion_acotamiento_2d/main.py tabla\n")
+            for k, f in enumerate(trozo):
+                if k:  # línea delgada entre filas (el color lo fija la guía)
+                    fh.write("\\specialrule{0.3pt}{1pt}{1pt}\n")
+                if f["x"]:
+                    resto = f"{fmt(f['z'])} & $({fmt(f['x'][0])},\\,{fmt(f['x'][1])})$"
+                else:
+                    resto = "--- & infactible"
+                fh.write(f"{f['id']} & {celda_camino_latex(f['camino'])} & {resto} \\\\\n")
+        print("Guardado:", ruta_tex)
 
     # recorrido de la solución (mismo orden de creación que el árbol)
     ids = {f["camino"]: f["id"] for f in filas}
@@ -413,7 +436,6 @@ def comando_tabla():
             fh.write(f"{k} & {nombre_latex(n['nombre'])} & {agregada} & {a_latex(texto_camino(camino))}"
                      f" & {ids[camino]} & {z} & {x} & {decision_latex(n, nodos, mejor_al_podar)} \\\\\n")
     print("Guardado:", ruta_csv)
-    print("Guardado:", ruta_tex)
     print("Guardado:", ruta_rec)
 
 
