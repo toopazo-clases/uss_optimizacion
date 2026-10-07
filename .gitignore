@@ -11,3 +11,4 @@ agregación_vs_secuencia/*.png
 # que el código actual ya no reproduce
 !agregación_vs_secuencia/secuencia_por_bloque_53_14.png
 !agregación_vs_secuencia/secuencia_por_ciclo_x1_x2_53_14.png
+ramificacion_acotamiento_2d/resultados/

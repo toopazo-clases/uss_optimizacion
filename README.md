@@ -28,6 +28,11 @@ aparecen en clases, guías y laboratorios.
   variables (2 restricciones más por variable, z = x1 + ... + xn). Genera la tabla de
   tiempos (restricciones, vértices, puntos revisados, soluciones factibles, empates,
   tiempo; verificada contra pulp/HiGHS), las figuras 2D y 3D y la curva de tiempos.
+- `ramificacion_acotamiento_2d/main.py` — ramificación y acotamiento paso a paso
+  sobre el problema 2D de la figura "PL vs. PLE" (el de `fuerzabruta_LpProblem_entera`),
+  con reglas fijas (primera variable fraccionaria, mejor cota). Genera el árbol de
+  referencia y la "tabla de subproblemas" (relajaciones de todos los subproblemas
+  alcanzables + distractores) de Guia_6_Ramificación_y_acotamiento.
 - `agregación_vs_secuencia/main.py` — diagrama de Gantt de una línea de flujo de 3
   máquinas (Taha 2.2A-4): muestra que el LP de capacidad agregada no garantiza que
   exista una secuencia de fabricación factible.
@@ -54,6 +59,8 @@ python pulp_LpProblem_entera/main.py california_manufacturing
 
 python fuerzabruta_LpProblem_entera/main.py tabla 2 8   # tiempos -> resultados/tiempos.csv
 python fuerzabruta_LpProblem_entera/main.py figura3d    # también: figura2d, curva, curva_puntos
+
+python ramificacion_acotamiento_2d/main.py arbol      # también: tabla
 
 python agregación_vs_secuencia/main.py                 # editar la secuencia al final del archivo
 
