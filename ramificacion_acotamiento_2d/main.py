@@ -42,6 +42,7 @@ Uso:
 import csv
 import math
 import os
+import random
 import sys
 
 import pulp
@@ -57,6 +58,7 @@ RESTRICCIONES = [
 ]
 N = 2
 EPS = 1e-6
+SEMILLA_TABLA = 2026  # orden (mezclado) de las filas de la tabla de subproblemas
 
 ROJO, AMARILLO, VERDE = "infactible", "por cota", "entera"
 
@@ -115,10 +117,11 @@ def ramificacion_y_acotamiento():
     incumbente = None
     orden = [0]
 
-    def crear(nombre, padre, agregada, lo, hi):
+    def crear(nombre, padre, restr, lo, hi):
         r = relajacion(lo, hi)
         nodo = {
-            "nombre": nombre, "padre": padre, "agregada": agregada,
+            "nombre": nombre, "padre": padre, "restr": restr,
+            "agregada": texto_restriccion(restr) if restr else None,
             "lo": lo, "hi": hi, "x": r[0] if r else None, "z": r[1] if r else None,
             "estado": None, "orden": orden[0],
         }
@@ -165,82 +168,99 @@ def ramificacion_y_acotamiento():
         base = "S" if elegido == "P" else elegido + "-"
         caja1, caja2 = hijos(padre["lo"], padre["hi"], j, v)
         f = math.floor(v)
-        h1 = crear(f"{base}1", elegido, f"x{j + 1} <= {f}", *caja1)
-        h2 = crear(f"{base}2", elegido, f"x{j + 1} >= {f + 1}", *caja2)
+        h1 = crear(f"{base}1", elegido, (j, "<=", f), *caja1)
+        h2 = crear(f"{base}2", elegido, (j, ">=", f + 1), *caja2)
         probar(h1)
         probar(h2)
     return nodos, pasos, incumbente
 
 
 # --------------------------------------------------------------------------
-# Tabla de subproblemas (todas las cajas alcanzables, sin podar)
+# Tabla de subproblemas como CAMINOS (restricciones acumuladas sin simplificar)
 # --------------------------------------------------------------------------
+# Un camino es la tupla de restricciones agregadas desde P, en orden:
+# ((j, "<=" | ">=", valor), ...). Cada fila de la tabla es un camino, con las
+# restricciones tal como se van agregando (p. ej. "x1 >= 6, x2 <= 4, x1 <= 6");
+# simplificarlas (x1 = 6) queda a cargo del estudiante.
 
 
-def todas_las_cajas():
-    """Cierre de la ramificación: desde la raíz, se ramifica cada caja
-    factible y fraccionaria en CADA una de sus variables fraccionarias.
-    Devuelve dict caja -> relajación (o None si infactible)."""
-    raiz = ((0,) * N, (None,) * N)
-    cajas = {}
-    pendientes = [raiz]
-    while pendientes:
-        caja = pendientes.pop()
-        if caja in cajas:
-            continue
-        r = relajacion(*caja)
-        cajas[caja] = r
+def caja_de(camino):
+    lo, hi = [0] * N, [None] * N
+    for j, sentido, v in camino:
+        if sentido == "<=":
+            hi[j] = v if hi[j] is None else min(hi[j], v)
+        else:
+            lo[j] = max(lo[j], v)
+    return tuple(lo), tuple(hi)
+
+
+def camino_de(nodos, nombre):
+    """Restricciones agregadas desde P hasta el nodo, en orden."""
+    camino = []
+    while nodos[nombre]["padre"] is not None:
+        camino.append(nodos[nombre]["restr"])
+        nombre = nodos[nombre]["padre"]
+    return tuple(reversed(camino))
+
+
+def caminos_alcanzables():
+    """Todos los caminos que se obtienen ramificando, sin podar, en
+    CUALQUIER variable fraccionaria y en cualquier orden."""
+    caminos = []
+
+    def explorar(camino):
+        caminos.append(camino)
+        r = relajacion(*caja_de(camino))
         if r is None:
-            continue
+            return
         for j in fraccionarias(r[0]):
-            pendientes.extend(hijos(caja[0], caja[1], j, r[0][j]))
-    return cajas
+            f = math.floor(r[0][j])
+            explorar(camino + ((j, "<=", f),))
+            explorar(camino + ((j, ">=", f + 1),))
+
+    explorar(())
+    return caminos
 
 
-def distractores(cajas):
-    """Cajas que salen de errores típicos al plantear un subproblema, para
-    que la tabla no regale el árbol y un planteamiento equivocado lleve a
-    una fila que existe (con otros números):
+def caminos_distractores(caminos):
+    """Caminos que salen de errores típicos, para que la tabla no regale el
+    árbol y un planteamiento equivocado lleve a una fila que existe:
       - redondear al revés: x_j <= ceil(v) o x_j >= floor(v);
-      - olvidar una restricción heredada: quitar las cotas de una variable."""
-    nuevas = set()
-    for (lo, hi), r in cajas.items():
+      - olvidar una restricción heredada: quitar una restricción anterior
+        a la última."""
+    nuevos = set()
+    for camino in caminos:
+        r = relajacion(*caja_de(camino))
         if r is not None:
             for j in fraccionarias(r[0]):
                 f = math.floor(r[0][j])
-                hi1 = list(hi)
-                hi1[j] = f + 1
-                lo2 = list(lo)
-                lo2[j] = f
-                nuevas.add((tuple(lo), tuple(hi1)))
-                nuevas.add((tuple(lo2), tuple(hi)))
-        acotadas = [j for j in range(N) if lo[j] != 0 or hi[j] is not None]
-        if len(acotadas) > 1:
-            for j in acotadas:
-                lo3, hi3 = list(lo), list(hi)
-                lo3[j], hi3[j] = 0, None
-                nuevas.add((tuple(lo3), tuple(hi3)))
-    return {c: relajacion(*c) for c in nuevas if c not in cajas}
+                nuevos.add(camino + ((j, "<=", f + 1),))
+                nuevos.add(camino + ((j, ">=", f),))
+        for k in range(len(camino) - 1):
+            nuevos.add(camino[:k] + camino[k + 1:])
+    return sorted(nuevos - set(caminos))
 
 
-def clave_orden(caja):
-    lo, hi = caja
-    return tuple(v for j in range(N) for v in (lo[j], math.inf if hi[j] is None else hi[j]))
+def clave_camino(camino):
+    return (len(camino), tuple((j, 0 if s == "<=" else 1, v) for j, s, v in camino))
 
 
 def tabla():
-    cajas = todas_las_cajas()
-    cajas.update(distractores(cajas))
+    caminos = caminos_alcanzables()
+    caminos += caminos_distractores(caminos)
+    # orden mezclado (semilla fija -> tabla reproducible): obliga a buscar
+    # el camino, en vez de deducirlo del orden de las filas
+    caminos = sorted(set(caminos), key=clave_camino)
+    random.Random(SEMILLA_TABLA).shuffle(caminos)
     filas = []
-    for i, caja in enumerate(sorted(cajas, key=clave_orden), start=1):
-        r = cajas[caja]
-        lo, hi = caja
+    for i, camino in enumerate(caminos, start=1):
+        r = relajacion(*caja_de(camino))
         filas.append({
             "id": f"T{i:02d}",
-            "cotas": [cota_variable(j, lo[j], hi[j]) for j in range(N)],
+            "camino": camino,
+            "texto": texto_camino(camino),
             "x": r[0] if r else None,
             "z": r[1] if r else None,
-            "caja": caja,
         })
     return filas
 
@@ -279,9 +299,18 @@ def describir_cotas(lo, hi):
     return ", ".join(partes) if partes else "sin cotas adicionales"
 
 
+def texto_restriccion(restr):
+    j, sentido, v = restr
+    return f"x{j + 1} {sentido} {v}"
+
+
+def texto_camino(camino):
+    return ", ".join(texto_restriccion(r) for r in camino) if camino else "—"
+
+
 def a_latex(texto):
     texto = texto.replace("<=", r"\le").replace(">=", r"\ge")
-    texto = texto.replace("x1", "x_1").replace("x2", "x_2")
+    texto = texto.replace("x1", "x_1").replace("x2", "x_2").replace(", ", r",\ ")
     return "$" + texto + "$" if texto != "—" else "---"
 
 
@@ -307,45 +336,85 @@ def comando_arbol():
           f" ({len(nodos)} nodos)")
 
     # cada nodo del árbol debe estar en la tabla de subproblemas
-    ids = {f["caja"]: f["id"] for f in tabla()}
+    ids = {f["camino"]: f["id"] for f in tabla()}
     print("\n== Fila de la tabla de cada nodo ==")
     for n in sorted(nodos.values(), key=lambda n: n["orden"]):
-        print(f"{n['nombre']:10} -> {ids[(n['lo'], n['hi'])]}")
+        camino = camino_de(nodos, n["nombre"])
+        print(f"{n['nombre']:10} -> {ids[camino]}  ({texto_camino(camino)})")
+
+
+def decision_latex(nodo, nodos, incumbentes):
+    """Texto de la columna «Decisión» del recorrido (LaTeX)."""
+    if nodo["estado"].startswith("ramificado"):
+        return "ramificar en $x_" + nodo["estado"][-1] + "$"
+    if nodo["estado"] == ROJO:
+        return r"podar \ussfinmuestra{USSfinInfactible}"
+    if nodo["estado"] == VERDE:
+        return r"podar \ussfinmuestra{USSfinEntera}; mejor $=" + fmt(nodo["z"]) + "$"
+    mejor = nodos[incumbentes[nodo["nombre"]]]["z"]
+    return r"podar \ussfinmuestra{USSfinCota} ($" + fmt(nodo["z"]) + r"\le" + fmt(mejor) + "$)"
+
+
+def nombre_latex(nombre):
+    if nombre == "P":
+        return "$P$"
+    partes = nombre[1:].split("-")
+    return "$S_{" + r"\text{-}".join(partes) + "}$"
 
 
 def comando_tabla():
     filas = tabla()
-    usados = {(n["lo"], n["hi"]) for n in ramificacion_y_acotamiento()[0].values()}
-    print(f"{'id':4} {'cotas x1':14} {'cotas x2':14} {'Z':7} {'x1':6} {'x2':6} en árbol")
+    nodos, _pasos, incumbente = ramificacion_y_acotamiento()
+    usados = {camino_de(nodos, n): n for n in nodos}
+    print(f"{'id':4} {'restricciones adicionales':34} {'Z':10} {'X':14} en árbol")
     for f in filas:
-        x1, x2 = (fmt(f["x"][0]), fmt(f["x"][1])) if f["x"] else ("—", "—")
-        z = fmt(f["z"]) if f["z"] is not None else "infactible"
-        marca = "*" if f["caja"] in usados else ""
-        print(f"{f['id']:4} {f['cotas'][0]:14} {f['cotas'][1]:14} {z:10} {x1:6} {x2:6} {marca}")
-    print(f"\n{len(filas)} subproblemas; {len(usados)} aparecen en el árbol de referencia (*)")
+        z = fmt(f["z"]) if f["z"] is not None else "—"
+        x = fmt_x(f["x"]) if f["x"] else "infactible"
+        marca = usados.get(f["camino"], "")
+        print(f"{f['id']:4} {f['texto']:34} {z:10} {x:14} {marca}")
+    print(f"\n{len(filas)} caminos; {len(usados)} son del árbol de referencia")
 
     os.makedirs(CARPETA_RESULTADOS, exist_ok=True)
     ruta_csv = os.path.join(CARPETA_RESULTADOS, "tabla_subproblemas.csv")
     with open(ruta_csv, "w", newline="", encoding="utf-8") as fh:
         w = csv.writer(fh)
-        w.writerow(["id", "cotas_x1", "cotas_x2", "z", "x1", "x2"])
+        w.writerow(["id", "restricciones_adicionales", "z", "x"])
         for f in filas:
             if f["x"]:
-                w.writerow([f["id"], *f["cotas"], fmt(f["z"]), fmt(f["x"][0]), fmt(f["x"][1])])
+                w.writerow([f["id"], f["texto"], fmt(f["z"]), fmt_x(f["x"])])
             else:
-                w.writerow([f["id"], *f["cotas"], "infactible", "", ""])
+                w.writerow([f["id"], f["texto"], "", "infactible"])
     ruta_tex = os.path.join(CARPETA_RESULTADOS, "tabla_subproblemas.tex")
     with open(ruta_tex, "w", encoding="utf-8") as fh:
         fh.write("% Generado por uss_optimizacion/ramificacion_acotamiento_2d/main.py tabla\n")
         for f in filas:
-            c1, c2 = (a_latex(c) for c in f["cotas"])
             if f["x"]:
-                resto = f"{fmt(f['z'])} & {fmt(f['x'][0])} & {fmt(f['x'][1])}"
+                resto = f"{fmt(f['z'])} & $({fmt(f['x'][0])},\\,{fmt(f['x'][1])})$"
             else:
-                resto = r"\multicolumn{3}{c}{infactible}"
-            fh.write(f"{f['id']} & {c1} & {c2} & {resto} \\\\\n")
+                resto = "--- & infactible"
+            fh.write(f"{f['id']} & {a_latex(f['texto'])} & {resto} \\\\\n")
+
+    # recorrido de la solución (mismo orden de creación que el árbol)
+    ids = {f["camino"]: f["id"] for f in filas}
+    mejor_al_podar = {}
+    mejor = None
+    for n in sorted(nodos.values(), key=lambda n: n["orden"]):
+        if n["estado"] == VERDE:
+            mejor = n["nombre"]
+        mejor_al_podar[n["nombre"]] = mejor if n["estado"] != VERDE else n["nombre"]
+    ruta_rec = os.path.join(CARPETA_RESULTADOS, "recorrido.tex")
+    with open(ruta_rec, "w", encoding="utf-8") as fh:
+        fh.write("% Generado por uss_optimizacion/ramificacion_acotamiento_2d/main.py tabla\n")
+        for k, n in enumerate(sorted(nodos.values(), key=lambda n: n["orden"]), start=1):
+            camino = camino_de(nodos, n["nombre"])
+            agregada = a_latex(n["agregada"]) if n["agregada"] else "---"
+            z = fmt(n["z"]) if n["z"] is not None else "---"
+            x = f"$({fmt(n['x'][0])},\\,{fmt(n['x'][1])})$" if n["x"] else "infactible"
+            fh.write(f"{k} & {nombre_latex(n['nombre'])} & {agregada} & {a_latex(texto_camino(camino))}"
+                     f" & {ids[camino]} & {z} & {x} & {decision_latex(n, nodos, mejor_al_podar)} \\\\\n")
     print("Guardado:", ruta_csv)
     print("Guardado:", ruta_tex)
+    print("Guardado:", ruta_rec)
 
 
 def main():
