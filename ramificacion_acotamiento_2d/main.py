@@ -543,8 +543,8 @@ def comando_tabla():
         with open(ruta_tex, "w", encoding="utf-8") as fh:
             fh.write("% Generado por uss_optimizacion/ramificacion_acotamiento_2d/main.py tabla\n")
             for k, f in enumerate(trozo):
-                if k:  # línea delgada entre filas (el color lo fija la guía)
-                    fh.write("\\specialrule{0.3pt}{1pt}{1pt}\n")
+                if k:  # separador entre filas: \\separadorfila lo define cada documento
+                    fh.write("\\separadorfila\n")
                 if f["x"]:
                     resto = f"{fmt(f['z'])} & $({fmt(f['x'][0])},\\,{fmt(f['x'][1])})$"
                 else:
