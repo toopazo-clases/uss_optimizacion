@@ -49,6 +49,9 @@ aparecen en clases, guías y laboratorios.
 - `solemne02_p2/main.py` — Problema 2 de la Solemne 02: planificación militar (adaptada de
   Taha 2.4F-8) con 4 líneas de defensa, "K de N restricciones" y grupos de reserva
   ("N valores posibles"). Formas A y B difieren solo en las tropas.
+- `ep02/main.py` — Evaluación Parcial 02, "Operación Cupido": maximizar las citas esperadas del
+  mes con presupuesto y horas limitadas (costo fijo + decisiones contingentes). Verifica la
+  pauta, el segundo mejor plan y los escenarios de la pregunta 7 (más horas o más presupuesto).
 
 ## Uso
 
@@ -77,4 +80,5 @@ python solemne01_p1/main.py                            # resuelve con los valore
 
 python solemne02_p1/main.py                            # pauta del Problema 1 (Formas A y B)
 python solemne02_p2/main.py                            # pauta del Problema 2 (Formas A y B)
+python ep02/main.py                                    # pauta de la EP02
 ```
