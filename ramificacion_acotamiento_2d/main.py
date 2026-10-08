@@ -447,6 +447,17 @@ def modelo_latex():
             "\n  \\end{array}\n  \\qquad " + variables + " \\ge 0 \\text{ enteras}\n\\]\n")
 
 
+def modelo_estandar_latex():
+    """Modelo en forma estándar: una restricción por línea."""
+    lineas = [f"    \\max & z & = & {expresion_latex(OBJETIVO)} \\\\[4pt]"]
+    for a, b, et in RESTRICCIONES:
+        lineas.append(f"    \\text{{{et}:}} & {expresion_latex(a)} & \\le & {b} \\\\")
+    lineas[-1] += "[4pt]"
+    variables = ",\\ ".join(f"x_{j + 1}" for j in range(N))
+    lineas.append(f"    & \\multicolumn{{3}}{{l}}{{{variables} \\ge 0 \\text{{ enteras}}}}")
+    return "\\[\n  \\begin{array}{lrcl}\n" + "\n".join(lineas) + "\n  \\end{array}\n\\]\n"
+
+
 def arbol_latex(nodos):
     """Árbol solución en TikZ: hojas en orden de izquierda a derecha
     (subproblema «-1» a la izquierda), padres centrados sobre sus hijos."""
@@ -563,6 +574,7 @@ def comando_tabla():
     inc = nodos[incumbente]
     extras = {
         "modelo.tex": modelo_latex(),
+        "modelo_estandar.tex": modelo_estandar_latex(),
         "arbol.tex": arbol_latex(nodos),
         "optimo.tex": (f"$X^*=({fmt(inc['x'][0])},\\,{fmt(inc['x'][1])})$, $Z^*={fmt(inc['z'])}$"
                        f" (subproblema {nombre_latex(incumbente)}).\n"),
@@ -572,7 +584,7 @@ def comando_tabla():
             fh.write(cabecera + texto)
     print("Guardado:", ruta_csv)
     print("Guardado:", ruta_rec)
-    print("Guardado: modelo.tex, arbol.tex, optimo.tex")
+    print("Guardado: modelo.tex, modelo_estandar.tex, arbol.tex, optimo.tex")
 
 
 def main():
