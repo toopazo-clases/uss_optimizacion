@@ -28,11 +28,14 @@ aparecen en clases, guías y laboratorios.
   variables (2 restricciones más por variable, z = x1 + ... + xn). Genera la tabla de
   tiempos (restricciones, vértices, puntos revisados, soluciones factibles, empates,
   tiempo; verificada contra pulp/HiGHS), las figuras 2D y 3D y la curva de tiempos.
-- `ramificacion_acotamiento_2d/main.py` — ramificación y acotamiento paso a paso
-  sobre el problema 2D de la figura "PL vs. PLE" (el de `fuerzabruta_LpProblem_entera`),
-  con reglas fijas (primera variable fraccionaria, mejor cota). Genera el árbol de
-  referencia y la "tabla de subproblemas" (relajaciones de todos los subproblemas
-  alcanzables + distractores) de Guia_6_Ramificación_y_acotamiento.
+- `ramificacion_acotamiento_2d/main.py` — ramificación y acotamiento paso a paso,
+  con reglas fijas (primera variable fraccionaria, mejor cota), sobre un banco de
+  problemas de 2 variables: `p1` (la figura "PL vs. PLE", el de
+  `fuerzabruta_LpProblem_entera`) a `p5` (Guia_6_Ramificación_y_acotamiento) y
+  `solemne02_a`/`solemne02_b` (Problema 3 de la Solemne 02). Genera en
+  `resultados/<problema>/` todo el LaTeX: modelo (compacto y estándar), "tabla de
+  subproblemas" como caminos (en 2 columnas, filas F1, F2, ... mezcladas), árbol solución
+  en TikZ, recorrido y óptimo.
 - `agregación_vs_secuencia/main.py` — diagrama de Gantt de una línea de flujo de 3
   máquinas (Taha 2.2A-4): muestra que el LP de capacidad agregada no garantiza que
   exista una secuencia de fabricación factible.
@@ -40,6 +43,12 @@ aparecen en clases, guías y laboratorios.
   resuelve con pulp la asignación óptima de unidades azules (regulares y de reserva) a 3
   líneas de defensa en 2 frentes. Las constantes a, b y las tropas atacantes rojas (u) están
   al principio del archivo para editarlas a mano y volver a correr.
+- `solemne02_p1/main.py` — Problema 1 de la Solemne 02: qué productos fabricar (problema de
+  costo fijo, 3 productos, 2 recursos y demanda máxima). Verifica la pauta de las Formas A y
+  B, que difieren solo en las horas disponibles.
+- `solemne02_p2/main.py` — Problema 2 de la Solemne 02: planificación militar (adaptada de
+  Taha 2.4F-8) con 4 líneas de defensa, "K de N restricciones" y grupos de reserva
+  ("N valores posibles"). Formas A y B difieren solo en las tropas.
 
 ## Uso
 
@@ -60,9 +69,12 @@ python pulp_LpProblem_entera/main.py california_manufacturing
 python fuerzabruta_LpProblem_entera/main.py tabla 2 8   # tiempos -> resultados/tiempos.csv
 python fuerzabruta_LpProblem_entera/main.py figura3d    # también: figura2d, curva, curva_puntos
 
-python ramificacion_acotamiento_2d/main.py arbol      # también: tabla
+python ramificacion_acotamiento_2d/main.py arbol p1   # también: tabla p1 (p1..p5, solemne02_a/b)
 
 python agregación_vs_secuencia/main.py                 # editar la secuencia al final del archivo
 
 python solemne01_p1/main.py                            # resuelve con los valores del enunciado
+
+python solemne02_p1/main.py                            # pauta del Problema 1 (Formas A y B)
+python solemne02_p2/main.py                            # pauta del Problema 2 (Formas A y B)
 ```
